@@ -5,6 +5,7 @@ import logging
 import urllib.parse
 from datetime import datetime
 from typing import Any
+import re
 
 import aiohttp
 
@@ -222,7 +223,10 @@ class DeLonghiAPI:
             ) as response:
                 consent_text = await response.text()
 
-            signature = consent_text.split("const consentObj2Sig = '")[1].split("';")[0]
+            sig_match = re.search(r"""const\s+consentObj2Sig\s*=\s*(["'])(.*?)\1""", consent_text)
+            if not sig_match or not sig_match.group(2):
+               raise ValueError("Consent signature not found in consent page")
+            signature = sig_match.group(2)
 
             # Step 6: Authorization
             async with self.session.get(
